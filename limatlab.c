@@ -609,7 +609,7 @@ void* mat_element_load_compressed(int32_t size, char* data) {
     z_streamp strm = calloc(sizeof(z_stream), 1);
     
     strm->next_in = (unsigned char*) data;
-    strm->avail_in = (uint) size;
+    strm->avail_in = (unsigned int) size;
     
     int z = inflateInit(strm);
     assert(z == Z_OK);
@@ -619,7 +619,7 @@ void* mat_element_load_compressed(int32_t size, char* data) {
     
     for (;;) {
         strm->next_out = p + strm->total_out;
-        strm->avail_out = (uInt) (n - strm->total_out);
+        strm->avail_out = (unsigned int) (n - strm->total_out);
         z = inflate(strm, Z_SYNC_FLUSH);
         if (z != Z_OK) // completed (or error)
             break;
@@ -883,7 +883,7 @@ void mat_buffer_deflate(mat_buffer* self) {
     // set up stream to access the mat_buffer's data
     z_streamp strm = calloc(sizeof(z_stream), 1);
     strm->next_in = (unsigned char*) self->data;
-    strm->avail_in = (uint) self->size;
+    strm->avail_in = (unsigned int) self->size;
     
     int z = deflateInit(strm, Z_DEFAULT_COMPRESSION);
     assert(z == Z_OK);
@@ -891,7 +891,7 @@ void mat_buffer_deflate(mat_buffer* self) {
     uLong n = deflateBound(strm, (uLong) self->size);
     Bytef* p = calloc(n + 8, 1);
     strm->next_out = p + 8;
-    strm->avail_out = (uInt) n;
+    strm->avail_out = (unsigned int) n;
 
     // output sized by deflateBound guarantees deflation complete in one step
     z = deflate(strm, Z_FINISH);
