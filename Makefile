@@ -4,14 +4,13 @@ OBJS := ${SRCS:.c=.o}
 EXEC := liconvert
 
 CFLAGS ?= -lm -lz
-EXTRA_CFLAGS ?= $(CFLAGS)
 
 $(EXEC): $(OBJS)
-	$(CC) -o $(EXEC) $(OBJS) $(EXTRA_CFLAGS)
+	$(CC) -o $(EXEC) $(OBJS) $(CFLAGS)
 
 all:	$(EXEC)
 clean:
-	rm $(OBJS)
-	rm $(EXEC)
+	rm $(OBJS) 2>/dev/null || exit 0
+	rm $(EXEC) 2>/dev/null || exit 0
 
 .PHONY: all clean
