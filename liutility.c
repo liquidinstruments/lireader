@@ -244,7 +244,8 @@ li_status li_string_resize(li_string* self, size_t n, li_utf8 fill) {
         li_dealloc(*self);
         *self = p;
     }
-    (*self)[n] = 0;
+    if (*self)
+        (*self)[n] = 0;
     return LI_SUCCESS;
 }
 
