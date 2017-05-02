@@ -17,9 +17,9 @@ for p in $platforms; do
 	# Don't statically link on other platforms as Mac doesn't have static
 	# libz (and linux could go either way)
 	if [[ "$CC" == *mingw* ]]; then
-		CFLAGS="-l:libz.a -lm"
+		CFLAGS="-l:libz.a -lm -std=gnu99"
 	else
-		CFLAGS="-lz -lm"
+		CFLAGS="-lz -lm -std=gnu99"
 	fi
 
 	if [[ "$p" == win* ]]; then

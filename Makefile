@@ -3,7 +3,7 @@ SRCS := $(wildcard *.c)
 OBJS := ${SRCS:.c=.o}
 EXEC := liconvert
 
-CFLAGS ?= -lm -lz
+CFLAGS ?= -lm -lz -std=gnu99
 
 $(EXEC): $(OBJS)
 	$(CC) -o $(EXEC) $(OBJS) $(CFLAGS)
