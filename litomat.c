@@ -35,15 +35,13 @@ typedef struct {
 
 void pTF_ctor(pTF* self) {
     assert(self);
-    // The files returned by tempfile should be automatically deleted on close,
-    // and automatically closed on process exit.
     self->fp = tmpfile();
 }
 
 void pTF_dtor(pTF* self) {
     assert(self);
-    // Manually close them anyway to reclaim disk and scarce file descriptors
-    fclose(self->fp);
+    if (self && self->fp)
+        fclose(self->fp);
 }
 
 li_array_define(pTF);
@@ -317,7 +315,7 @@ li_status li_to_mat(FILE* input, FILE* output) {
     // Moku.timestamp
     {
         time_t t = time(NULL);
-        const int N = 64;
+#       define N 64
         char buf[N];
         strftime(buf, N, "%Y-%m-%d T %H:%M:%S %z", localtime(&t));
         mat_matrix_write_utf8(output, buf);
