@@ -51,6 +51,7 @@ int main(int argc, char** argv) {
         csv, mat
     } kind = csv;
     bool use_stdin = false;
+    bool stdin_already_used = false;
 
     while (*++argv)
         if (**argv == '-') { // Process a flag
@@ -59,18 +60,24 @@ int main(int argc, char** argv) {
             } else if (!strcmp(*argv, "--mat")) {
                 kind = mat;
             } else if (!strcmp(*argv, "--stdin")) {
+                if (stdin_already_used) {
+                    printf("Cannot process stdin twice\n");
+                    return EXIT_FAILURE;
+                }
                 use_stdin = true;
             } else {
                 if (!strcmp(*argv, "--help"))
-                    printf("Unrecognized option \"%s\"\n\n", *argv);
+                    printf("Unrecognized option \"%s\"\n", *argv);
                 help();
             }
         } else { // Convert a file
             FILE* infile;
-            if (use_stdin)
+            if (use_stdin) {
                 infile = stdin;
-            else
+                stdin_already_used = true;
+            } else {
                 infile = fopen(*argv, "rb");
+            }
 
             if (!infile) {
                 fprintf(stderr, "Could not open \"%s\"\n", *argv);
@@ -107,7 +114,10 @@ int main(int argc, char** argv) {
             fclose(outfile);
         cleanup:
             free(outname);
-            fclose(infile);
+            if (!use_stdin)
+                fclose(infile);
+            else
+                use_stdin = false;
         }
     return EXIT_SUCCESS;
 }
