@@ -19,7 +19,10 @@ extern "C" {
     // MAT-file.  Files must be open for binary reading and writing
     // respectively.
     
-    li_status li_to_mat(FILE* input, FILE* output);
+    li_status li_to_mat(FILE* input,
+                        FILE* output,
+                        void (*callback)(void* user_ptr, uint64_t bytes_read, uint64_t bytes_written),
+                        void* user_ptr);
     
     
 #ifdef __cplusplus
