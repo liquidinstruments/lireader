@@ -103,10 +103,10 @@ int main(int argc, char** argv) {
             li_status result;
             switch (kind) {
                 case csv:
-                    result = li_to_csv(infile, outfile);
+                    result = li_to_csv(infile, outfile, NULL, NULL);
                     break;
                 case mat:
-                    result = li_to_mat(infile, outfile);
+                    result = li_to_mat(infile, outfile, NULL, NULL);
                     break;
             }
             if (result)
