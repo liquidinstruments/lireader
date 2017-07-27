@@ -35,21 +35,23 @@ typedef struct {
 
 void pTF_ctor(pTF* self) {
     assert(self);
-    // The files returned by tempfile should be automatically deleted on close,
-    // and automatically closed on process exit.
     self->fp = tmpfile();
 }
 
 void pTF_dtor(pTF* self) {
     assert(self);
-    // Manually close them anyway to reclaim disk and scarce file descriptors
-    fclose(self->fp);
+    if (self && self->fp)
+        fclose(self->fp);
 }
 
 li_array_define(pTF);
 
-li_status li_to_mat(FILE* input, FILE* output) {
-    
+li_status li_to_mat(FILE* input,
+                    FILE* output,
+                    void (*callback)(void* user_ptr, uint64_t bytes_read, uint64_t bytes_written),
+                    void* user_ptr)
+{
+
     // Todo: reduce duplication with li_to_mat
     
     li_status result = LI_SUCCESS;
@@ -97,6 +99,8 @@ li_status li_to_mat(FILE* input, FILE* output) {
         // Read up to read_buffer_size bytes from the file, which is at least
         // as many as suggested, and set n to the bytes actually read
         n = fread(li_array_begin(li_byte)(&buffer), 1, li_array_size(li_byte)(&buffer), input);
+        if (callback)
+            callback(user_ptr, n, 0);
         // Give n bytes to the reader
         result = li_put(r, li_array_begin(li_byte)(&buffer), (size_t) n);
         REQUIRE_SUCCESS;
@@ -184,6 +188,7 @@ li_status li_to_mat(FILE* input, FILE* output) {
 #endif
                     fwrite(&d, sizeof(double), 1, (iter++)->fp);
                     assert(m == 1);
+                    // We don't report I/O with the temporary files to callback
                 }
             }
             if (result != LI_SMALL_SRC) // We left the loop because of an error
@@ -193,13 +198,15 @@ li_status li_to_mat(FILE* input, FILE* output) {
     REQUIRE_FORMAT(rows);
     // We finished the file and read at least one row
     result = LI_SUCCESS;
+
+    // to report incremental progress in file we use ftell
+    long old_offset = 0;
+    long new_offset = 0;
     
     mh = mat_header_new(csvHeader);
-    fwrite(mh, sizeof(mat_header), 1, output);
     REQUIRE_ALLOC(mh);
-    
-    
-    
+    fwrite(mh, sizeof(mat_header), 1, output);
+
     long token = mat_element_open(output, miMATRIX);
     mat_array_write_flags(output, mxSTRUCT_CLASS);
     mat_array_write_dims2(output, 1, 1);
@@ -210,7 +217,6 @@ li_status li_to_mat(FILE* input, FILE* output) {
     char fields[][FIELD_NAME_LENGTH] = {
         "comment",
         "data",
-        "time",
         "legend",
         "version",
         "timestamp"
@@ -222,9 +228,15 @@ li_status li_to_mat(FILE* input, FILE* output) {
     {
         mat_matrix_write_utf8(output, csvHeader);
     }
-    
+
+    if (callback) {
+        new_offset = ftell(output);
+        callback(user_ptr, 0, new_offset - old_offset);
+        old_offset = new_offset;
+    }
+
     size_t columns = li_array_size(pTF)(&files);
-    
+
     // Moku.data
     {
         long token2 = mat_element_open(output, miMATRIX);
@@ -249,25 +261,11 @@ li_status li_to_mat(FILE* input, FILE* output) {
                 // Close early to reduce maximum footprint on disk
                 fclose(p->fp);
                 p->fp = 0;
-            }
-            mat_element_close(output, token3);
-        }
-        mat_element_close(output, token2);
-    }
-    
-    // Moku.time
-    {
-        long token2 = mat_element_open(output, miMATRIX);
-        mat_array_write_flags(output, mxDOUBLE_CLASS);
-        mat_array_write_dims2(output, (int32_t) rows, 1);
-        mat_array_write_name(output, "");
-        {
-            long token3 = mat_element_open(output, miDOUBLE);
-            for (int j = 0; j != rows; ++j) {
-                // compute rather than increment to maximise precision
-                double t = startOffset + timeStep * j;
-                // append the column to the output one value at a time
-                fwrite(&t, sizeof(t), 1, output);
+                if (callback) {
+                    new_offset = ftell(output);
+                    callback(user_ptr, 0, new_offset - old_offset);
+                    old_offset = new_offset;
+                }
             }
             mat_element_close(output, token3);
         }
@@ -317,16 +315,22 @@ li_status li_to_mat(FILE* input, FILE* output) {
     // Moku.timestamp
     {
         time_t t = time(NULL);
-        const int N = 64;
+#       define N 64
         char buf[N];
         strftime(buf, N, "%Y-%m-%d T %H:%M:%S %z", localtime(&t));
         mat_matrix_write_utf8(output, buf);
     }
     
     mat_element_close(output, token); // close the mat_struct
-    
+
+    if (callback) {
+        new_offset = ftell(output);
+        callback(user_ptr, 0, new_offset - old_offset);
+        old_offset = new_offset;
+    }
+
 cleanup:
-    
+
     mat_header_delete(mh);
     li_array_dtor(pTF)(&files);
     li_array_dtor(Replacement)(&replacements);

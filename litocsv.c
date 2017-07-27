@@ -24,7 +24,10 @@
 #define CONTINUE_SMALL_AFTER(CLEANUP) { if (result != LI_SUCCESS) { { CLEANUP; } if (result == LI_SMALL_SRC) { continue; } else { LI_ON_ERROR; goto cleanup; } } }
 #define REQUIRE_FORMAT(X) do { if (!( X )) { result = LI_BAD_FORMAT; LI_ON_ERROR; goto cleanup; } } while(false)
 
-li_status li_to_csv(FILE* input, FILE* output)
+li_status li_to_csv(FILE* input,
+                    FILE* output,
+                    void (*callback)(void* user_ptr, uint64_t bytes_read, uint64_t bytes_written),
+                    void* user_ptr)
 {
     // Todo: reduce duplication with li_to_mat
     
@@ -71,6 +74,8 @@ li_status li_to_csv(FILE* input, FILE* output)
         // Read up to read_buffer_size bytes from the file, which is at least
         // as many as suggested, and set n to the bytes actually read
         n = fread(li_array_begin(li_byte)(&buffer), 1, li_array_size(li_byte)(&buffer), input);
+        if (callback)
+            callback(user_ptr, n, 0);
         // Give n bytes to the reader
         result = li_put(r, li_array_begin(li_byte)(&buffer), (size_t)n);
         REQUIRE_SUCCESS;
@@ -130,20 +135,23 @@ li_status li_to_csv(FILE* input, FILE* output)
             LI_TRUST(li_string_resize(&csvHeader, (size_t) bytes - 1, 'x'));
             LI_TRUST(li_get(r, LI_HDR_STRING_UTF8V, 0, csvHeader, (size_t) bytes));
             
-            fprintf(output, "%s", csvHeader);
+            n = fprintf(output, "%s", csvHeader);
+            if (callback)
+                callback(user_ptr, 0, n);
         }
 
         if (csvHeader && csvFmt) {
             // Try to get all the records for the next time
+            n = 0; // Accumulate bytes written
             while ((result = li_get(r, LI_RECORD_F64V, 0, li_array_begin(double)(&doubles), li_array_size(double)(&doubles) * sizeof(double))) == LI_SUCCESS) {
                 // Compute the relative time
                 double t = startOffset + timeStep * rows++;
                 if (li_array_empty(Replacement)(&replacements)) {
                     // There's no format string so print time followed by
                     // everything
-                    fprintf(output, "%.10e", t);
+                    n += fprintf(output, "%.10e", t);
                     LI_FOR(double, p, &doubles)
-                        fprintf(output, ", %.16e", *p);
+                        n += fprintf(output, ", %.16e", *p);
                 } else {
                     // We have parsed the format string
                     
@@ -151,26 +159,28 @@ li_status li_to_csv(FILE* input, FILE* output)
                     for (;;) {
                         switch (*p->identifier) {
                             case 't':
-                                fprintf(output, p->format, t);
+                                n += fprintf(output, p->format, t);
                                 break;
                             case 'n':
-                                fprintf(output, "%lu", rows-1);
+                                n += fprintf(output, "%lu", rows-1);
                                 break;
                             case 'c':
-                                fprintf(output, p->format, doubles.begin[p->index]);
+                                n += fprintf(output, p->format, doubles.begin[p->index]);
                                 break;
                         }
                         ++p;
                         if (p == li_array_end(Replacement)(&replacements)) {
                             break;
                         } else {
-                            fprintf(output, ", ");
+                            n += fprintf(output, ", ");
                         }
                     }
                 }
                 // CR+LF line end
-                fprintf(output, "\r\n");
+                n += fprintf(output, "\r\n");
             }
+            if (callback)
+                callback(user_ptr, 0, n);
             if (result != LI_SMALL_SRC) {
                 // We left the loop because of a serious error
                 goto cleanup;
