@@ -13,6 +13,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <unistd.h> // for ssize_t
 #if defined(unix) && !defined(__APPLE__)
 #include <endian.h>
 #endif
