@@ -1140,9 +1140,9 @@ mat_struct* mat_struct_new() {
     int32_t dims[] = { 1, 1 };
     self->dims = mat_array_new(miINT32, sizeof(dims), dims);
     self->name = mat_array_new_int8("");
-    int32_t fieldNameLength = 8;
+    int32_t fieldNameLength = 32;
     self->fieldNameLength = mat_array_new(miINT32, sizeof(fieldNameLength), &fieldNameLength);
-    self->fieldNames = mat_array_new_int8("");
+    self->fieldNames = mat_array_new(miINT8, 0, NULL);
     return self;
     
 }
@@ -1155,7 +1155,7 @@ void mat_struct_push(void* self, const char* fieldName, void* matrix) {
     const int32_t fieldCount = ptr->fieldNames->size / *fieldNameLength;
     
     // We can't realloc since the field name length might need to increase
-    int32_t newFieldNameLength = (int32_t) next8(MAX((size_t) *fieldNameLength, strlen(fieldName)));
+    int32_t newFieldNameLength = (int32_t) next8(MAX((size_t) *fieldNameLength, strlen(fieldName) + 1));
     char* newFieldNames = calloc((size_t) fieldCount + 1, (size_t) newFieldNameLength);
     char* fieldNames = (char*) ptr->fieldNames->data;
     for (int32_t i = 0; i != fieldCount; ++i) {
