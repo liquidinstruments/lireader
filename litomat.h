@@ -9,6 +9,9 @@
 #ifndef litomat_h
 #define litomat_h
 
+#include <stdio.h> // for FILE
+#include <stdint.h> // for uint64_t
+
 #include "lireader.h"
 
 #ifdef __cplusplus

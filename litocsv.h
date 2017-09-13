@@ -9,7 +9,8 @@
 #ifndef litocsv_h
 #define litocsv_h
 
-#include <stdio.h>
+#include <stdio.h> // for FILE
+#include <stdint.h> // for uint64_t
 
 #include "lireader.h"
 

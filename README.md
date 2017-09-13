@@ -2,7 +2,7 @@ Convert Moku binary logging .li files to .csv or .mat
 
 Compile with
 
-    cc *.c -o liconvert -Ofast -lmz -std=c99
+    make
 
 Convert files to CSV with
 
