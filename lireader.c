@@ -691,7 +691,7 @@ return LI_SUCCESS;\
                             li_number_dtor(&x);
                             goto misalignment_resume_point;
                         }
-                    } else {
+                    } else if (r->type != 'p') {
                         double y = li_number_double(x);
                         double z = Operations_apply(proc_iter++, y);
                         *output++ = z;
