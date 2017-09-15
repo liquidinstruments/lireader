@@ -117,6 +117,7 @@ struct li_reader {
     li_header header;
     li_array(Parsed) parsed;
     size_t bytes_per_output;
+    uint64_t records_read;
 };
 
 
@@ -173,6 +174,7 @@ static void li_reader_ctor(li_reader* self) {
     self->state = INIT;
     self->suggested_put = 3;
     self->version = 0;
+    self->records_read = 0;
 }
 
 static void li_reader_dtor(li_reader* self) {
@@ -650,6 +652,8 @@ return LI_SUCCESS;\
         
         if (target == LI_RECORD_F64V) {
             
+        misalignment_resume_point:
+
             if (count < self->bytes_per_output)
                 return LI_SMALL_DEST;
             double* output = dest;
@@ -674,7 +678,19 @@ return LI_SUCCESS;\
                     x.width = r->width;
                     li_number_fix_sign(&x);
                     if (r->literal.type) {
-                        assert(li_number_equal(x, r->literal));
+                        if (!li_number_equal(x, r->literal)) {
+                            if(self->records_read) {
+                                self->state = BAD;
+                                return LI_BAD_FORMAT;
+                            }
+                            for (Parsed* q = li_array_Parsed_begin(&self->parsed); q <= p; ++q)
+                                li_queue_unget(&q->queue, q->rec_bytes);
+                            LI_FOR(Parsed, q, &self->parsed)
+                                li_queue_drop(&q->queue, 1);
+                            li_bit_queue_dtor(&bits);
+                            li_number_dtor(&x);
+                            goto misalignment_resume_point;
+                        }
                     } else {
                         double y = li_number_double(x);
                         double z = Operations_apply(proc_iter++, y);
@@ -684,6 +700,7 @@ return LI_SUCCESS;\
                 li_bit_queue_dtor(&bits);
             }
             assert((output - (double*) dest) == (self->bytes_per_output/sizeof(double)));
+            ++(self->records_read);
             return LI_SUCCESS;
         }
         
