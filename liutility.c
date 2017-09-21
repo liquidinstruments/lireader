@@ -14,6 +14,7 @@
 
 #include "liparse.h"
 
+#include "bitcpy.h"
 
 
 void* (*li_alloc)(size_t n) = malloc;
@@ -161,6 +162,8 @@ void li_queue_clear(li_queue* self) {
 void li_bit_queue_ctor(li_bit_queue* self) {
     assert(self);
     li_queue_ctor(&self->queue);
+    self->begin_offset = 0;
+    self->end_offset = 0;
 }
 
 void li_bit_queue_dtor(li_bit_queue* self) {
@@ -170,46 +173,51 @@ void li_bit_queue_dtor(li_bit_queue* self) {
 
 size_t li_bit_queue_size(li_bit_queue* self) {
     assert(self);
-    return li_queue_size(&self->queue);
+    return (li_queue_size(&self->queue) << 3) + self->end_offset - self->begin_offset;
 }
 
 li_status li_bit_queue_put(li_bit_queue* self, const void* src, size_t bits) {
     assert(self && (src || !bits));
-    li_byte* s = (li_byte*) src;
-    LI_DOUBT(li_queue_will_put(&self->queue, bits));
-    for (size_t i = 0; i != bits; ++i) {
-        li_byte b = (s[i >> 3] >> (i & 7)) & 1;
-        LI_TRUST(li_queue_put(&self->queue, &b, 1));
-    }
+    assert((0 <= self->end_offset) && (self->end_offset < LI_BITS_PER_BYTE));
+    LI_DOUBT(li_queue_will_put(&self->queue, (bits + 7) >> 3));
+    bitcpy(self->queue.end, (int) self->end_offset, src, 0, bits);
+    self->end_offset += bits;
+    self->queue.end += (self->end_offset >> 3);
+    self->end_offset &= 7;
     return LI_SUCCESS;
 }
 
 
 li_status li_bit_queue_get(li_bit_queue* self, void* dest, size_t bits) {
     assert(self && (dest || !bits));
-    li_byte* d = (li_byte*) dest;
+    assert((0 <= self->begin_offset) && (self->begin_offset < LI_BITS_PER_BYTE));
     if (bits > li_bit_queue_size(self))
         return LI_SMALL_SRC;
-    for (size_t i = 0; i != bits; ++i) {
-        li_byte b;
-        LI_TRUST(li_queue_get(&self->queue, &b, 1));
-        if (b)
-            d[i >> 3] |= 1 << (i & 7);
-        else
-            d[i >> 3] &= ~(1 << (i & 7));
-    }
+    bitcpy(dest, 0, self->queue.begin, (int) self->begin_offset, bits);
+    self->begin_offset += bits;
+    self->queue.begin += (self->begin_offset >> 3);
+    self->begin_offset &= 7;
     return LI_SUCCESS;
 }
 
 li_status li_bit_queue_unget_bits(li_bit_queue* self, size_t bits) {
     assert(self);
-    return li_queue_unget(&self->queue, bits);
+    assert((0 <= self->begin_offset) && (self->begin_offset < LI_BITS_PER_BYTE));
+    if ((((self->queue.begin - self->queue.data) << 3) + self->begin_offset) < bits) {
+        return LI_SMALL_SRC;
+    }
+    self->begin_offset -= bits;
+    self->queue.begin += (self->begin_offset >> 3);
+    self->begin_offset &= 7;
+    assert(self->queue.begin >= self->queue.data);
+    return LI_SUCCESS;
 }
-
 
 void li_bit_queue_clear(li_bit_queue* self) {
     assert(self);
     li_queue_clear(&self->queue);
+    self->begin_offset = 0;
+    self->end_offset = 0;
 }
 
 

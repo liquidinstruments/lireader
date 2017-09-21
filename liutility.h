@@ -252,6 +252,8 @@ extern "C" {
     
     typedef struct {
         li_queue queue;
+        ptrdiff_t begin_offset;
+        ptrdiff_t end_offset;
     } li_bit_queue;
     
     void li_bit_queue_ctor(li_bit_queue* self);
