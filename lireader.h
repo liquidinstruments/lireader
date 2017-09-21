@@ -88,7 +88,7 @@ extern "C" {
     
     // Return a the library version number as a string
     
-    const char* li_version_string();
+    const char* li_version_string(void);
     
     
     

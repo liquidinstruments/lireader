@@ -95,8 +95,10 @@ bool match_literal(char** p, void* zs) {
     assert(p && *p && zs);
     char* q = *p;
     char* s = zs;
-    while (*s && *q && (*s == *q))
-        ++q, ++s;
+    while (*s && *q && (*s == *q)) {
+        ++q;
+        ++s;
+    }
     return !*s && (*p = q);
 }
 
@@ -351,8 +353,8 @@ bool match_format_string(char** p, li_string* str) {
 bool match_replacement(char** p, Replacement* repl) {
     char* q = *p;
     return match_char(&q, "{") && match_identifier(&q, &repl->identifier)
-    && (match_subscript(&q, &repl->index), match_char(&q, ":")
-        && match_format_string(&q, &repl->format), match_char(&q, "}"))
+    && ((void) match_subscript(&q, &repl->index), (void) (match_char(&q, ":")
+        && match_format_string(&q, &repl->format)), match_char(&q, "}"))
     && (*p = q);
 }
 

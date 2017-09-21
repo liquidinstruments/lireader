@@ -272,8 +272,8 @@ extern "C" {
     
     mat_array* mat_array_new_int8(const char* zstr);
     
-    mat_struct* mat_struct_new();
-    mat_cell* mat_cell_new();
+    mat_struct* mat_struct_new(void);
+    mat_cell* mat_cell_new(void);
     
     void mat_struct_push(void* self, const char* fieldName, void* matrix);
     void mat_cell_push(void* self, void* matrix);
