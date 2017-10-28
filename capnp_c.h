@@ -13,7 +13,6 @@
 
 #include <stdint.h>
 #include <stdio.h>
-#include <unistd.h> // for ssize_t
 #if defined(unix) && !defined(__APPLE__)
 #include <endian.h>
 #endif
@@ -21,6 +20,8 @@
 // ssize_t is not defined in stdint.h in MSVC.
 #ifdef _MSC_VER
 typedef intmax_t ssize_t;
+#else
+#include <unistd.h> // for ssize_t
 #endif
 
 #ifdef __cplusplus
