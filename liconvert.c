@@ -13,6 +13,7 @@
 
 #include "litocsv.h"
 #include "litomat.h"
+#include "litonpy.h"
 
 char* li_change_extension(char* filename, char* extension)
 {
@@ -32,23 +33,26 @@ char* li_change_extension(char* filename, char* extension)
 
 static void help()
 {
-    printf("Convert Liquid Instruments binary log files (.li) to Comma Separated Value (.csv)\n");
-    printf("or MATLAB 5.0 MAT-file.  (C) Liquid Instruments 2016\n");
+    printf("Convert Liquid Instruments binary log files (.li) to\n");
+    printf("  * Comma Separated Value (.csv)\n");
+    printf("  * MATLAB 5.0 MAT-file (.mat)\n");
+    printf("  * NumPy (.npy)");
+    printf("(C) Liquid Instruments 2016\n");
     printf("\n");
-    printf("usage:   liconvert [--mat] [--stdin] [file ...]\n");
+    printf("usage:   liconvert [--mat] [--csv] [--npy] [--stdin] [file ...]\n");
     printf("\n");
     printf("example: liconvert file              Write file.csv\n");
     printf("         liconvert file1 file2       Write file1.csv and file2.csv\n");
     printf("         liconvert --mat f1 f2       Write f1.mat and f2.mat\n");
     printf("         liconvert --stdin file      Accept binary data from stdin and write to file.csv\n");
-    
+    printf("         liconvert --npy file        Write file.npy\n");
 }
 
 int main(int argc, char** argv) {
     if (argc == 1)
         help();
     enum {
-        csv, mat
+        csv, mat, npy
     } kind = csv;
     bool use_stdin = false;
     bool stdin_already_used = false;
@@ -59,6 +63,8 @@ int main(int argc, char** argv) {
                 kind = csv;
             } else if (!strcmp(*argv, "--mat")) {
                 kind = mat;
+            } else if (!strcmp(*argv, "--npy")) {
+                kind = npy;
             } else if (!strcmp(*argv, "--stdin")) {
                 if (stdin_already_used) {
                     printf("Cannot process stdin twice\n");
@@ -91,6 +97,9 @@ int main(int argc, char** argv) {
                 case mat:
                     outname = li_change_extension(*argv, "mat");
                     break;
+                case npy:
+                    outname = li_change_extension(*argv, "npy");
+                    break;
             }
             
             //printf("%s -> %s\n", *argv, outname);
@@ -107,6 +116,9 @@ int main(int argc, char** argv) {
                     break;
                 case mat:
                     result = li_to_mat(infile, outfile, NULL, NULL);
+                    break;
+                case npy:
+                    result = li_to_npy(infile, outfile, NULL, NULL);
                     break;
             }
             if (result)
