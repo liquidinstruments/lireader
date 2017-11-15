@@ -112,7 +112,7 @@ extern "C" {
     typedef struct mat_matrix /* : mat_element */
     {
         int32_t type;
-        mat_array* flags; // 2 x uint32_t; includes LIMFli_mat_arrayType in least signifcant byte of first uint32_t
+        mat_array* flags; // 2 x uint32_t; includes mat_ in least signifcant byte of first uint32_t
         mat_array* dims;  // ? x  int32_t; mat_matrix dimensions
         mat_array* name;  // ? x   int8_t; variable name
     } mat_matrix;
@@ -122,7 +122,7 @@ extern "C" {
     int32_t  mat_matrix_ndims(void* self); // number of dimensions
     int32_t* mat_matrix_size (void* self); // raw dimensions array
     int32_t  mat_matrix_numel(void* self); // number of elements *product of dimensions
-    
+
     typedef struct mat_numeric /* : mat_matrix */
     {
         int32_t type;
@@ -175,6 +175,14 @@ extern "C" {
         mat_array* fieldNames;
         mat_matrix** fields;
     } mat_object;
+
+    // Cast to pointer or null
+    mat_numeric* mat_matrix_to_numeric(void* self);
+    mat_sparse* mat_matrix_to_sparse(void* self);
+    mat_cell* mat_matrix_to_cell(void* self);
+    mat_struct* mat_matrix_to_struct(void* self);
+    mat_object* mat_matrix_to_object(void* self);
+
     
     
     // Number of fields of a struct or object
@@ -184,8 +192,8 @@ extern "C" {
 
     // Reading from a buffer [*begin, *end).  Successful parsing moves *begin.
     
-    mat_header* mat_header_load(char** begin, char** end);
-    void* mat_element_load(char** begin, char** end);
+    mat_header* mat_header_load(const char** begin, const char** end);
+    void* mat_element_load(const char** begin, const char** end);
     
     // Reading from a stream.
     mat_header* mat_header_read(FILE* file);

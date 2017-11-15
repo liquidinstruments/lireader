@@ -226,6 +226,62 @@ uint32_t mat_class_validate(uint32_t class_) {
     }
 }
 
+mat_numeric* mat_matrix_to_numeric(void* self) {
+    switch (mat_matrix_class(self)) {
+        case mxCHAR_CLASS:
+        case mxDOUBLE_CLASS:
+        case mxSINGLE_CLASS:
+        case mxINT8_CLASS:
+        case mxUINT8_CLASS:
+        case mxINT16_CLASS:
+        case mxUINT16_CLASS:
+        case mxINT32_CLASS:
+        case mxUINT32_CLASS:
+        case mxINT64_CLASS:
+        case mxUINT64_CLASS:
+            return self;
+        default:
+            return NULL;
+    }
+}
+
+mat_sparse* mat_matrix_to_sparse(void* self) {
+    switch (mat_matrix_class(self)) {
+        case mxSPARSE_CLASS:
+            return self;
+        default:
+            return NULL;
+    }
+}
+
+mat_cell* mat_matrix_to_cell(void* self) {
+    switch (mat_matrix_class(self)) {
+        case mxCELL_CLASS:
+            return self;
+        default:
+            return NULL;
+    }
+}
+
+mat_struct* mat_matrix_to_struct(void* self) {
+    switch (mat_matrix_class(self)) {
+        case mxSTRUCT_CLASS:
+            return self;
+        default:
+            return NULL;
+    }
+}
+
+mat_object* mat_matrix_to_object(void* self) {
+    switch (mat_matrix_class(self)) {
+        case mxOBJECT_CLASS:
+            return self;
+        default:
+            return NULL;
+    }
+}
+
+
 
 mat_header* mat_header_new(const char* description) {
     mat_header* self = calloc(1, sizeof(mat_header));
@@ -245,7 +301,7 @@ void mat_header_delete(mat_header* self) {
     free(self);
 }
 
-mat_header* mat_header_load(char** begin, char** end) {
+mat_header* mat_header_load(const char** begin, const char** end) {
     mat_header* self = 0;
     if (((*end - *begin) >= (ptrdiff_t) sizeof(mat_header))
         && (self = malloc(sizeof(mat_header)))) {
@@ -497,7 +553,7 @@ void mat_element_print(void* self) {
 
 // Load file elements from a byte range
 
-void* mat_element_load_numeric(mat_array* flags, mat_array* dims, mat_array* name, char** begin, char** end) {
+void* mat_element_load_numeric(mat_array* flags, mat_array* dims, mat_array* name, const char** begin, const char** end) {
     mat_numeric* self = calloc(1, sizeof(mat_numeric));
     self->type = miMATRIX;
     self->flags = flags;
@@ -511,7 +567,7 @@ void* mat_element_load_numeric(mat_array* flags, mat_array* dims, mat_array* nam
     return self;
 }
 
-void* mat_element_load_structure(mat_array* flags, mat_array* dims, mat_array* name, char**begin, char** end) {
+void* mat_element_load_structure(mat_array* flags, mat_array* dims, mat_array* name, const char**begin, const char** end) {
     mat_struct* self = calloc(1, sizeof(mat_struct));
     self->type = miMATRIX;
     self->flags = flags;
@@ -527,7 +583,7 @@ void* mat_element_load_structure(mat_array* flags, mat_array* dims, mat_array* n
     return self;
 }
 
-void* mat_element_load_object(mat_array* flags, mat_array* dims, mat_array* name, char**begin, char** end) {
+void* mat_element_load_object(mat_array* flags, mat_array* dims, mat_array* name, const char**begin, const char** end) {
     mat_object* self = calloc(1, sizeof(mat_object));
     self->type = miMATRIX;
     self->flags = flags;
@@ -544,7 +600,7 @@ void* mat_element_load_object(mat_array* flags, mat_array* dims, mat_array* name
     return self;
 }
 
-void* mat_element_load_sparse(mat_array* flags, mat_array* dims, mat_array* name, char** begin, char** end) {
+void* mat_element_load_sparse(mat_array* flags, mat_array* dims, mat_array* name, const char** begin, const char** end) {
     mat_sparse* self = calloc(1, sizeof(mat_sparse));
     self->type = miMATRIX;
     self->flags = flags;
@@ -562,7 +618,7 @@ void* mat_element_load_sparse(mat_array* flags, mat_array* dims, mat_array* name
 
 
 
-void* mat_element_load_cell(mat_array* flags, mat_array* dims, mat_array* name, char** begin, char** end) {
+void* mat_element_load_cell(mat_array* flags, mat_array* dims, mat_array* name, const char** begin, const char** end) {
     mat_cell* self = calloc(1, sizeof(mat_cell));
     self->type = miMATRIX;
     self->flags = flags;
@@ -577,9 +633,9 @@ void* mat_element_load_cell(mat_array* flags, mat_array* dims, mat_array* name, 
     return self;
 }
 
-void* mat_element_load_matrix(int32_t size, char* data) {
-    char* begin = data;
-    char* end   = data + size;
+void* mat_element_load_matrix(int32_t size, const char* data) {
+    const char* begin = data;
+    const char* end   = data + size;
     
     mat_array* flags = mat_element_load(&begin, &end);
     mat_array* dims = mat_element_load(&begin, &end);
@@ -604,7 +660,7 @@ void* mat_element_load_matrix(int32_t size, char* data) {
     }
 }
 
-void* mat_element_load_compressed(int32_t size, char* data) {
+void* mat_element_load_compressed(int32_t size, const char* data) {
     
     z_streamp strm = calloc(sizeof(z_stream), 1);
     
@@ -635,7 +691,7 @@ void* mat_element_load_compressed(int32_t size, char* data) {
     z = inflateEnd(strm);
     assert(z == Z_OK);
     
-    void* self = mat_element_load((char**) &begin, (char**) &end);
+    void* self = mat_element_load((const char**) &begin, (const char**) &end);
     assert(begin == end);
     
     free(p);
@@ -645,7 +701,7 @@ void* mat_element_load_compressed(int32_t size, char* data) {
     
 }
 
-void* mat_element_load_array(int32_t type, int32_t size, char* data) {
+void* mat_element_load_array(int32_t type, int32_t size, const char* data) {
     mat_array* self = calloc(sizeof(mat_array), 1);
     self->type = type;
     self->size = size;
@@ -654,7 +710,7 @@ void* mat_element_load_array(int32_t type, int32_t size, char* data) {
     return self;
 }
 
-void* mat_element_load(char** begin, char** end) {
+void* mat_element_load(const char** begin, const char** end) {
     
     assert(*begin <= *end);
     if (*begin == *end)
@@ -662,9 +718,7 @@ void* mat_element_load(char** begin, char** end) {
     
     int32_t type;
     int32_t size;
-    char*   data;
-    
-    //char* saved_begin = *begin;
+    const char* data;
     
     int32_t front = *((int32_t*) *begin);
     if (front & (int32_t) 0xFFFF0000) {
@@ -989,8 +1043,8 @@ void mat_file_print(FILE* input) {
     fseek(input, 0, SEEK_SET);
     fread(ptr, 1, (size_t) n, input);
     
-    char* begin = ptr;
-    char* end = ptr + n;
+    const char* begin = ptr;
+    const char* end = ptr + n;
     
     mat_header* hdr = mat_header_load(&begin, &end);
     mat_header_print(hdr);
@@ -1181,6 +1235,12 @@ void mat_header_write(FILE* file, mat_header* hdr) {
     fwrite(hdr, sizeof(mat_header), 1, file);
 }
 
+void mat_matrix_set_name(void* self, const char* name) {
+    assert(self);
+    mat_matrix* ptr = (mat_matrix*) self;
+    mat_element_delete(ptr->name);
+    ptr->name = mat_array_new_int8(name);
+}
 
 
 
